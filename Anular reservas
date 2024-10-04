@@ -1,0 +1,39 @@
+# Obtener hasta 300 órdenes de venta de INGENIERIA
+ovc_orders = env['sale.order'].search([
+    ('company_id.name', '=', 'INGENIERIA Y PRODUCTOS DE ACERO')  # Filtrar por la compañía de INGENIERIA
+], limit=300)  # Limitar la búsqueda a 300 registros
+
+for ovc in ovc_orders:
+    # Verificar si el campo 'special_comments' de la OVC contiene "NNP"
+    if ovc.special_comments and "NNP" in ovc.special_comments.upper():
+        # No anular ni asignar reservas si contiene "NNP"
+        continue
+
+    # Verificar si el campo 'special_comments' de la OVC contiene "NQR"
+    if not (ovc.special_comments and "NQR" in ovc.special_comments.upper()):
+        # Buscar todas las OVM relacionadas
+        ovms = env['sale.order'].search([
+            ('parent_code', '=', ovc.name),  # Buscar OVM donde 'parent_code' sea igual al nombre de la OVC
+            ('company_id.name', '=', 'FORTALEZA DE ACERO, TUBOS Y MALLAS')  # Filtrar por la compañía de FORTALEZA
+        ])
+        
+        for ovm in ovms:
+            # Verificar si el campo 'special_comments' de la OVM contiene "NNP"
+            if ovm.special_comments and "NNP" in ovm.special_comments.upper():
+                # No anular ni asignar reservas si contiene "NNP"
+                continue
+
+            # Verificar si el campo 'special_comments' de la OVM contiene "NQR"
+            if not (ovm.special_comments and "NQR" in ovm.special_comments.upper()):
+                # Obtener los movimientos de inventario relacionados a la OVM
+                pickings = env['stock.picking'].search([
+                    ('origin', 'ilike', ovm.name)  # Filtrar por el nombre de la OVM
+                ])
+                
+                for picking in pickings:
+                    # Anular las reservas
+                    try:
+                        picking.do_unreserve()  # Anular la reserva
+                    except Exception as e:
+                        # Manejo de excepciones (opcional)
+                        pass
